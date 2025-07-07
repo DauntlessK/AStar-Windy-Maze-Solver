@@ -12,7 +12,7 @@ class Maze():
                     ]
         
         # Wind Parameters
-        self.windDirection = 0               # 0 = West, 1 = North, 2 = East, 3 = South
+        self.windDirection = 0               # Direction wind blows: 0 = West, 1 = North, 2 = East, 3 = South
         self.MOVEMENT_COST_WITH_WIND = 1     # cost in spaces to move in the direction of the wind
         self.MOVEMENT_COST_PERP_WIND = 2     # cost in spaces to move perpendicular to the wind
         self.MOVEMENT_COST_AGAINST_WIND = 3  # cost in spaces to move against the direction of the wind
@@ -59,6 +59,12 @@ class Maze():
     # Returns dictionary object containing row and column of box
     def getStartBox(self):
         return self.startBox
+    
+    def getStartBoxRow(self):
+        return self.startBox["Row"]
+    
+    def getStartBoxColumn(self):
+        return self.startBox["Column"]
 
     # Returns dictionary object containing row and column of box
     def getFinishBox(self):
@@ -92,9 +98,9 @@ class Maze():
             return False
         box = self.getBoxType(row, col)
         if box == "Empty Box":
-            return False
-        else:
             return True
+        else:
+            return False
         
 # One individual node that holds a box's info when it is discovered, then added to the queue
 class boxNode():
@@ -113,9 +119,37 @@ class boxNode():
             return self.num < other.num
         return self.totalCost < other.totalCost
     
-m = Maze()
-node1 = boxNode(m, 1, 10, 1, 3)
-node2 = boxNode(m, 3, 11, 1, 4)
+    def __str__(self):
+        return f"Node #{self.num} - Loc: {self.row},{self.column} - {self.movementCost} + {self.manhattanDistance} = {self.totalCost}"
 
-heap = []
-heapq.heappush(heap, node1)
+def resolveBox(maze, heap, exp, box):
+    # Check West first
+    if maze.boxExists(box.row, box.column-1):
+        exp += 1
+        newNodeWest = boxNode(maze, exp, maze.getMovementCost(0), box.row, box.column-1)
+        heapq.heappush(heap, newNodeWest)
+    # Check North
+    if maze.boxExists(box.row-1, box.column):
+        exp += 1
+        newNodeNorth = boxNode(maze, exp, maze.getMovementCost(1), box.row-1, box.column)
+        heapq.heappush(heap, newNodeNorth)
+    # Check East
+    if maze.boxExists(box.row, box.column+1):
+        exp += 1
+        newNodeEast = boxNode(maze, exp, maze.getMovementCost(2), box.row, box.column+1)
+        heapq.heappush(heap, newNodeEast)
+    # Check South
+    if maze.boxExists(box.row+1, box.column):
+        exp += 1
+        newNodeSouth = boxNode(maze, exp, maze.getMovementCost(3), box.row+1, box.column)
+        heapq.heappush(heap, newNodeSouth)
+
+    print(heap)
+
+m = Maze()
+heapFrontier = []
+nodeStart = boxNode(m, 0, 0, m.getStartBoxRow(), m.getStartBoxColumn())
+exploredCount = 1
+resolveBox(m, heapFrontier, exploredCount, nodeStart)
+print(heapq.heappop(heapFrontier))
+print(heapq.heappop(heapFrontier))
