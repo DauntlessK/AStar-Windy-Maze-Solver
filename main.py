@@ -4,7 +4,7 @@ class Maze():
 
     def __init__(self):
         # Maze stored as a 2D array, where 0 = empty box, 1 = start, 2 = finish, 8 = blank space
-        self.layout = [[0,1,0,8,0,0],
+        self.layout = [[0,1,0,0,0,0],
                        [0,8,8,8,8,0],
                        [0,8,0,2,8,0],
                        [0,8,0,0,0,0],
@@ -111,6 +111,7 @@ class boxNode():
         self.maze = maze
         self.row = row
         self.column = col
+        self.type = self.maze.getBoxType(self.row, self.column)
         self.manhattanDistance = self.maze.getManhattanDistance(self.row, self.column)
         self.totalCost = self.movementCost + self.manhattanDistance
 
@@ -119,37 +120,64 @@ class boxNode():
             return self.num < other.num
         return self.totalCost < other.totalCost
     
+    def __eq__(self, other):
+        if self.row == other.row and self.column == other.column:
+            return True
+        else:
+            return False
+    
     def __str__(self):
         return f"Node #{self.num} - Loc: {self.row},{self.column} - {self.movementCost} + {self.manhattanDistance} = {self.totalCost}"
 
-def resolveBox(maze, heap, exp, box):
+def resolveBox(maze, heap, explored, exp, box):
+    result = "Not Found"
     # Check West first
     if maze.boxExists(box.row, box.column-1):
         exp += 1
         newNodeWest = boxNode(maze, exp, maze.getMovementCost(0), box.row, box.column-1)
         heapq.heappush(heap, newNodeWest)
+        if newNodeWest.type == "Finish":
+            result = "Found"
     # Check North
     if maze.boxExists(box.row-1, box.column):
         exp += 1
         newNodeNorth = boxNode(maze, exp, maze.getMovementCost(1), box.row-1, box.column)
         heapq.heappush(heap, newNodeNorth)
+        if newNodeNorth.type == "Finish":
+            result = "Found"
     # Check East
     if maze.boxExists(box.row, box.column+1):
         exp += 1
         newNodeEast = boxNode(maze, exp, maze.getMovementCost(2), box.row, box.column+1)
         heapq.heappush(heap, newNodeEast)
+        if newNodeEast.type == "Finish":
+            result = "Found"
     # Check South
     if maze.boxExists(box.row+1, box.column):
         exp += 1
         newNodeSouth = boxNode(maze, exp, maze.getMovementCost(3), box.row+1, box.column)
         heapq.heappush(heap, newNodeSouth)
+        if newNodeSouth.type == "Finish":
+            result = "Found"
 
-    print(heap)
+    return result
 
 m = Maze()
 heapFrontier = []
+explored = []
+exploredCount = 0
 nodeStart = boxNode(m, 0, 0, m.getStartBoxRow(), m.getStartBoxColumn())
-exploredCount = 1
-resolveBox(m, heapFrontier, exploredCount, nodeStart)
-print(heapq.heappop(heapFrontier))
-print(heapq.heappop(heapFrontier))
+
+heapq.heappush(heapFrontier, nodeStart)
+
+while (len(heapFrontier) != 0):
+    currentBox = heapq.heappop(heapFrontier)
+    explored.append(currentBox)
+    result = resolveBox(m, heapFrontier, explored,  exploredCount, currentBox)
+    exploredCount += 1
+
+    if result == "Found":
+        break
+    
+print(heapFrontier)
+print(explored)
