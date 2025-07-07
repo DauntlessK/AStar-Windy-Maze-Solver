@@ -107,19 +107,15 @@ class boxNode():
         self.column = col
         self.manhattanDistance = self.maze.getManhattanDistance(self.row, self.column)
         self.totalCost = self.movementCost + self.manhattanDistance
-        self.next = None
 
-# Responsible for holding the frontier as a sorted list of box nodes
-class Queue():
-
-    def __init__(self):
-        self.head = None
-
-    # Inserts a new node into the linked list, keeping it sorted according to totalCost (tiebreak goes to num)
-    def insert(newNode):
-        pass
-
+    def __lt__(self, other):
+        if self.totalCost == other.totalCost:
+            return self.num < other.num
+        return self.totalCost < other.totalCost
+    
 m = Maze()
-print(m.getBoxType(0,2))
-print(m.finishBox["Row"])
-print(m.getMovementCost(2))
+node1 = boxNode(m, 1, 10, 1, 3)
+node2 = boxNode(m, 3, 11, 1, 4)
+
+heap = []
+heapq.heappush(heap, node1)
