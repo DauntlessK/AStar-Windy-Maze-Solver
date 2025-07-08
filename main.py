@@ -3,11 +3,20 @@ import heapq
 class Maze():
 
     def __init__(self):
-        # Maze stored as a 2D array, where 0 = empty box, 1 = start, 2 = finish, 8 = blank space
+        # Maze stored as a 2D array, where 0 = empty box, -1 = start, -2 = finish, -8 = blank space
+        # Positive ints represent an explored box (and the number in which they were discovered)
+        #self.layout = [[00,-1,00,00,00,00],
+        #               [00,-8,-8,-8,-8,00],
+        #               [00,-8,00,-2,-8,00],
+        #               [00,-8,00,00,00,00],
+        #               [00,00,00,00,00,00]
+        #            ]
+        
         self.layout = [[00,-1,00,00,00,00],
+                       [-8,-8,-8,-8,-8,00],
+                       [-2,-8,-8,00,00,00],
                        [00,-8,-8,-8,-8,00],
-                       [00,-8,00,-2,-8,00],
-                       [00,-8,00,00,00,00],
+                       [00,00,00,-8,00,00],
                        [00,00,00,00,00,00]
                     ]
         
@@ -41,7 +50,9 @@ class Maze():
                     case -1:
                         stringToReturn += "SS"
                     case -2:
-                        stringToReturn += "GG"
+                        stringToReturn += "FF"
+                    case -5:
+                        stringToReturn += "**"
                     case -8:
                         stringToReturn += "XX"
                     case _:
@@ -143,6 +154,16 @@ class Maze():
         else:
             return False
         
+    # Called when solution is found to revert maze array back to original, then fill in the solution
+    def updateWithSolution(self, solution):
+        for x in range(len(self.layout)):
+            for y in range(len(self.layout[x])):
+                if self.layout[x][y] not in solution and self.layout[x][y] > 0:
+                    self.layout[x][y] = 00
+                elif self.layout[x][y] in solution:
+                    self.layout[x][y] = -5    
+
+        
 # One individual node that holds a box's info when it is discovered, then added to the queue
 class boxNode():
     
@@ -164,6 +185,11 @@ class boxNode():
         return self.totalCost < other.totalCost
     
     def __eq__(self, other):
+        if isinstance(other, int): 
+            if other == self.num:
+                return True
+            else:
+                return False
         if self.row == other.row and self.column == other.column:
             return True
         else:
@@ -184,7 +210,7 @@ class boxNode():
     
     # Ensures this node is a part of the solution by making sure that this node is connected to two other nodes in the solution
     def isNotPartOfSolution(self, node1, node2):
-        if self.node.isNeighbors(node1) and self.node.isNeigbors(node2):
+        if self.isNeighbors(node1) and self.isNeighbors(node2):
             return False
         return True
 
@@ -250,15 +276,21 @@ def backtrackForSolution(explored):
         if node.isNeighbors(previousNode):
             solution.insert(0, node)
             previousNode = node
-    
-    #Check for any dead ends by ensuring all nodes in between final node and start are connected to two nodes
-    for x in range(len(solution)-1):
-        #skip first and last node
-        if x == 0 or x == len(solution) - 1:
-            continue
-        if solution[x].isNotPartOfSolution(solution[x-1], solution[x+1]):
-            solution.pop(x)
-            x -= 1
+
+    # runs through loop at least once (but possible multiple times) looking for nodes that only have 1 neighbor within the list
+    # if found, removes it and reruns the loop again
+    # not the greatest practice but python lacks a do, while loop so this is a workaround I guess
+    # ------- NOT NEEDED, previous for loop removes dead ends
+    #notVerified = True
+    #while notVerified:
+    #    notVerified = False
+    #    for x in range(len(solution)):
+    #    #skip first and last node
+    #        if x == 0 or x == len(solution) - 1:
+    #            continue
+    #        if solution[x].isNotPartOfSolution(solution[x-1], solution[x+1]):
+    #            solution.pop(x)
+    #            notVerified = True
     return solution
 
 
@@ -281,6 +313,7 @@ while (len(heapFrontier) != 0):
     if result == "Found":
         break
     
-    
-print(heapFrontier)
-print(explored)
+solution = backtrackForSolution(explored)
+m.updateWithSolution(solution)
+print("Final Solution:")
+print(m)
