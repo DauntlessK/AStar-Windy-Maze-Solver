@@ -4,11 +4,11 @@ class Maze():
 
     def __init__(self):
         # Maze stored as a 2D array, where 0 = empty box, 1 = start, 2 = finish, 8 = blank space
-        self.layout = [[0,1,0,0,0,0],
-                       [0,8,8,8,8,0],
-                       [0,8,0,2,8,0],
-                       [0,8,0,0,0,0],
-                       [0,0,0,0,0,0]
+        self.layout = [[00,-1,00,00,00,00],
+                       [00,-8,-8,-8,-8,00],
+                       [00,-8,00,-2,-8,00],
+                       [00,-8,00,00,00,00],
+                       [00,00,00,00,00,00]
                     ]
         
         # Wind Parameters
@@ -23,6 +23,10 @@ class Maze():
         self.startBox = {}
         self.finishBox = {}
         self.setBoxes()
+
+        # Discovery Globals
+        self.nodesDiscovered = 0             # total number of nodes that have been found (added to frontier heap or expanded)
+
     
     def __str__(self):
         stringToReturn = ""
@@ -34,26 +38,43 @@ class Maze():
                 match self.layout[x][y]:
                     case 0:
                         stringToReturn += "[]"
-                    case 1:
+                    case -1:
                         stringToReturn += "SS"
-                    case 2:
+                    case -2:
                         stringToReturn += "GG"
-                    case 8:
+                    case -8:
                         stringToReturn += "XX"
+                    case _:
+                        # Deal with numbers 0-9 by adding a leading zero to string
+                        if len(str(self.layout[x][y])) == 1:
+                            stringToReturn += "0"
+                        stringToReturn += str(self.layout[x][y])
+
             stringToReturn += "\n"
         return stringToReturn
-                
+
+    # Updates map with a number            
+    def updateBox(self, row, col, num):
+        self.layout[row][col] = num
+
+    # Updates map with next discovery num          
+    def discoverBox(self, row, col):
+        self.nodesDiscovered += 1
+        self.layout[row][col] = self.nodesDiscovered
+
+    def getNumNodesDiscovered(self):
+        return self.nodesDiscovered
 
     def getBoxType(self, row, col):
         boxNum = self.layout[row][col]
         match boxNum:
             case 0:
                 return "Empty Box"
-            case 1:
+            case -1:
                 return "Start"
-            case 2:
+            case -2:
                 return "Finish"
-            case 8:
+            case -8:
                 return "Blank Space"
 
     # During init, called to establish the start and finish box coords
@@ -117,7 +138,7 @@ class Maze():
         elif row < 0 or col < 0:
             return False
         box = self.getBoxType(row, col)
-        if box == "Empty Box":
+        if box == "Empty Box" or box == "Finish":
             return True
         else:
             return False
@@ -125,13 +146,15 @@ class Maze():
 # One individual node that holds a box's info when it is discovered, then added to the queue
 class boxNode():
     
-    def __init__(self, maze, num, movementCost, row, col):
-        self.num = num                              # discovery number
+    def __init__(self, maze, movementCost, row, col):
+        self.num = maze.getNumNodesDiscovered() + 1 # discovery number
         self.movementCost = movementCost            # total movement cost of this box along with every square to date
         self.maze = maze
         self.row = row
         self.column = col
         self.type = self.maze.getBoxType(self.row, self.column)
+        if self.type == "Start":
+            self.num = 0
         self.manhattanDistance = self.maze.getManhattanDistance(self.row, self.column)
         self.totalCost = self.movementCost + self.manhattanDistance
 
@@ -148,6 +171,22 @@ class boxNode():
     
     def __str__(self):
         return f"Node #{self.num} - Loc: {self.row},{self.column} - {self.movementCost} + {self.manhattanDistance} = {self.totalCost}"
+    
+    # Determines if this node is neighbors with another node
+    def isNeighbors(self, otherNode):
+        # Check if East or West neighbors
+        if (self.row == otherNode.row and self.column == otherNode.column - 1) or (self.row == otherNode.row and self.column == otherNode.column + 1):
+            return True
+        # Check if North or South neigbors
+        if (self.row == otherNode.row  - 1 and self.column == otherNode.column) or (self.row == otherNode.row + 1 and self.column == otherNode.column):
+            return True
+        return False
+    
+    # Ensures this node is a part of the solution by making sure that this node is connected to two other nodes in the solution
+    def isNotPartOfSolution(self, node1, node2):
+        if self.node.isNeighbors(node1) and self.node.isNeigbors(node2):
+            return False
+        return True
 
 # Checks to see if the current box that may be added is already explored
 def notAlreadyExplored(explored, heap, box):
@@ -162,60 +201,86 @@ def notAlreadyExplored(explored, heap, box):
     return True
         
 # Checks a given box's 4 surrounding boxes and adds them to the heap if applicable
-def resolveBox(maze, heap, explored, exp, box):
+def resolveBox(maze, heap, explored, box):
     result = "Not Found"
     # Check West first
     if maze.boxExists(box.row, box.column-1):
-        exp += 1
-        newNodeWest = boxNode(maze, exp, maze.getMovementCost(0), box.row, box.column-1)
+        newNodeWest = boxNode(maze, maze.getMovementCost(0), box.row, box.column-1)
         if notAlreadyExplored(explored, heap, newNodeWest):
             heapq.heappush(heap, newNodeWest)
-        if newNodeWest.type == "Finish":
-            result = "Found"
+            maze.discoverBox(box.row, box.column-1)
+            if newNodeWest.type == "Finish":
+                result = "Found"
     # Check North
     if maze.boxExists(box.row-1, box.column):
-        exp += 1
-        newNodeNorth = boxNode(maze, exp, maze.getMovementCost(1), box.row-1, box.column)
+        newNodeNorth = boxNode(maze, maze.getMovementCost(1), box.row-1, box.column)
         if notAlreadyExplored(explored, heap, newNodeNorth):
             heapq.heappush(heap, newNodeNorth)
-        if newNodeNorth.type == "Finish":
-            result = "Found"
+            maze.discoverBox(box.row-1, box.column)
+            if newNodeNorth.type == "Finish":
+                result = "Found"
     # Check East
     if maze.boxExists(box.row, box.column+1):
-        exp += 1
-        newNodeEast = boxNode(maze, exp, maze.getMovementCost(2), box.row, box.column+1)
+        newNodeEast = boxNode(maze, maze.getMovementCost(2), box.row, box.column+1)
         if notAlreadyExplored(explored, heap, newNodeEast):
+            maze.discoverBox(box.row, box.column+1)
             heapq.heappush(heap, newNodeEast)
-        if newNodeEast.type == "Finish":
-            result = "Found"
+            if newNodeEast.type == "Finish":
+                result = "Found"
     # Check South
     if maze.boxExists(box.row+1, box.column):
-        exp += 1
-        newNodeSouth = boxNode(maze, exp, maze.getMovementCost(3), box.row+1, box.column)
+        newNodeSouth = boxNode(maze, maze.getMovementCost(3), box.row+1, box.column)
         if notAlreadyExplored(explored, heap, newNodeSouth):
+            maze.discoverBox(box.row+1, box.column)
             heapq.heappush(heap, newNodeSouth)
-        if newNodeSouth.type == "Finish":
-            result = "Found"
+            if newNodeSouth.type == "Finish":
+                result = "Found"
 
     return result
+
+# Goes back through explored list and gets the final solution to the maze
+# Returns list of nodes in order from start to final node before finish
+def backtrackForSolution(explored):
+    solution = []
+    # Add last explored node (the node that discovered the finish)
+    previousNode = explored[len(explored) - 1]
+    solution.append(previousNode)
+    #Go through explored nodes backwards finding neighbors of all those that were connected to the node that discovered the finish
+    for node in reversed(explored):
+        if node.isNeighbors(previousNode):
+            solution.insert(0, node)
+            previousNode = node
+    
+    #Check for any dead ends by ensuring all nodes in between final node and start are connected to two nodes
+    for x in range(len(solution)-1):
+        #skip first and last node
+        if x == 0 or x == len(solution) - 1:
+            continue
+        if solution[x].isNotPartOfSolution(solution[x-1], solution[x+1]):
+            solution.pop(x)
+            x -= 1
+    return solution
+
 
 m = Maze()
 heapFrontier = []
 explored = []
-exploredCount = 0
-print(m)
-nodeStart = boxNode(m, 0, 0, m.getStartBoxRow(), m.getStartBoxColumn())
+stepNum = 0                 # Current Step of expansion (loop)
+nodeStart = boxNode(m, 0, m.getStartBoxRow(), m.getStartBoxColumn())
 
 heapq.heappush(heapFrontier, nodeStart)
 
 while (len(heapFrontier) != 0):
     currentBox = heapq.heappop(heapFrontier)
+    print("Step #" + str(stepNum) + ":  Exploring " + str(currentBox.num))
+    print(m)
     explored.append(currentBox)
-    result = resolveBox(m, heapFrontier, explored,  exploredCount, currentBox)
-    exploredCount += 1
+    result = resolveBox(m, heapFrontier, explored, currentBox)
+    stepNum += 1
 
     if result == "Found":
         break
+    
     
 print(heapFrontier)
 print(explored)
