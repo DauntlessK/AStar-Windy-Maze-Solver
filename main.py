@@ -5,23 +5,24 @@ class Maze():
     def __init__(self):
         # Maze stored as a 2D array, where 0 = empty box, -1 = start, -2 = finish, -8 = blank space
         # Positive ints represent an explored box (and the number in which they were discovered)
-        #self.layout = [[00,-1,00,00,00,00],
-        #               [00,-8,-8,-8,-8,00],
-        #               [00,-8,00,-2,-8,00],
-        #               [00,-8,00,00,00,00],
-        #               [00,00,00,00,00,00]
-        #            ]
-        
         self.layout = [[00,-1,00,00,00,00],
-                       [-8,-8,-8,-8,-8,00],
-                       [-2,-8,-8,00,00,00],
                        [00,-8,-8,-8,-8,00],
-                       [00,00,00,-8,00,00],
+                       [00,-8,00,-2,-8,00],
+                       [00,-8,00,00,00,00],
                        [00,00,00,00,00,00]
                     ]
         
+        # Another maze test with a dead end
+        #self.layout = [[00,-1,00,00,00,00],
+        #               [-8,-8,-8,-8,-8,00],
+        #               [-2,-8,-8,00,00,00],
+        #               [00,-8,-8,-8,-8,00],
+        #               [00,00,00,-8,00,00],
+        #               [00,00,00,00,00,00]
+        #            ]
+        
         # Wind Parameters
-        self.windDirection = 0               # Direction wind blows: 0 = West, 1 = North, 2 = East, 3 = South
+        self.windDirection = 0               # Direction wind blows: 0 = West, 1 = North, 2 = East, 3 = South (Note the direction are opposite of the text, which is coming from)
         self.MOVEMENT_COST_WITH_WIND = 1     # cost in spaces to move in the direction of the wind
         self.MOVEMENT_COST_PERP_WIND = 2     # cost in spaces to move perpendicular to the wind
         self.MOVEMENT_COST_AGAINST_WIND = 3  # cost in spaces to move against the direction of the wind
@@ -126,6 +127,20 @@ class Maze():
     def getWindDirection(self):
         return self.windDirection
     
+    # Returns wind- where it is coming from in string format (0 is West)
+    # Note these are opposite of the code, which specifies the direction the wind is blowing
+    def getWindDirectionText(self):
+        match self.windDirection:
+            case 0:
+                return "East"
+            case 1:
+                return "South"
+            case 2:
+                return "West"
+            case 3:
+                return "North"
+
+    
     # Figures out the cost of a movement in a given direction based on wind
     # Returns int of # of movement cost
     def getMovementCost(self, direction):
@@ -160,8 +175,10 @@ class Maze():
             for y in range(len(self.layout[x])):
                 if self.layout[x][y] not in solution and self.layout[x][y] > 0:
                     self.layout[x][y] = 00
-                elif self.layout[x][y] in solution:
+                elif self.layout[x][y] in solution and self.layout[x][y] > 0:
                     self.layout[x][y] = -5    
+        # Re-place the finish because it was overridden when discovered
+        self.layout[self.finishBox["Row"]][self.finishBox["Column"]] = -2
 
         
 # One individual node that holds a box's info when it is discovered, then added to the queue
@@ -302,6 +319,8 @@ nodeStart = boxNode(m, 0, m.getStartBoxRow(), m.getStartBoxColumn())
 
 heapq.heappush(heapFrontier, nodeStart)
 
+print("---------Start of Maze---------")
+print("Wind direction: From the " + m.getWindDirectionText())
 while (len(heapFrontier) != 0):
     currentBox = heapq.heappop(heapFrontier)
     print("Step #" + str(stepNum) + ":  Exploring " + str(currentBox.num))
