@@ -3,7 +3,7 @@ import heapq
 class Maze():
 
     def __init__(self):
-        # Maze stored as a 2D array, where 0 = empty box, -1 = start, -2 = finish, -8 = blank space
+        # Maze stored as a 2D array, where 0 = empty box, -1 = start, -2 = finish, -8 = blank space/impassable
         # Positive ints represent an explored box (and the number in which they were discovered)
         self.layout = [[00,-1,00,00,00,00],
                        [00,-8,-8,-8,-8,00],
