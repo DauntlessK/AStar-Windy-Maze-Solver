@@ -1,3 +1,6 @@
+## Author: Kyle Breen-Bondie
+## CIS-479
+
 import heapq
 
 class Maze():
@@ -37,7 +40,6 @@ class Maze():
         # Discovery Globals
         self.nodesDiscovered = 0             # total number of nodes that have been found (added to frontier heap or expanded)
 
-    
     def __str__(self):
         stringToReturn = ""
         for x in range(len(self.layout)):
@@ -64,6 +66,26 @@ class Maze():
 
             stringToReturn += "\n"
         return stringToReturn
+    
+    # During init, called to establish the start and finish box coords
+    # Also verifies only 1 start and only 1 finish        
+    def setBoxes(self):
+        numStarts = 0
+        numFinishes = 0
+        for row in range(len(self.layout)):
+            for column in range(len(self.layout[row])):
+                if self.getBoxType(row, column) == "Start":
+                    self.startBox["Row"] = row
+                    self.startBox["Column"] = column
+                    numStarts += 1
+                if self.getBoxType(row, column) == "Finish":
+                    self.finishBox["Row"] = row
+                    self.finishBox["Column"] = column
+                    numFinishes += 1
+        if numStarts != 1:
+            raise ValueError("Not enough or too many start boxes in maze. Initialization failed.")
+        if numFinishes != 1:
+            raise ValueError("Not enough or too many finish boxes in maze. Initialization failed.")
 
     # Updates map with a number            
     def updateBox(self, row, col, num):
@@ -88,26 +110,6 @@ class Maze():
                 return "Finish"
             case -8:
                 return "Blank Space"
-
-    # During init, called to establish the start and finish box coords
-    # Also verifies only 1 start and only 1 finish        
-    def setBoxes(self):
-        numStarts = 0
-        numFinishes = 0
-        for row in range(len(self.layout)):
-            for column in range(len(self.layout[row])):
-                if self.getBoxType(row, column) == "Start":
-                    self.startBox["Row"] = row
-                    self.startBox["Column"] = column
-                    numStarts += 1
-                if self.getBoxType(row, column) == "Finish":
-                    self.finishBox["Row"] = row
-                    self.finishBox["Column"] = column
-                    numFinishes += 1
-        if numStarts != 1:
-            raise ValueError("Not enough or too many start boxes in maze. Initialization failed.")
-        if numFinishes != 1:
-            raise ValueError("Not enough or too many finish boxes in maze. Initialization failed.")
             
     # Returns dictionary object containing row and column of box
     def getStartBox(self):
@@ -196,11 +198,13 @@ class boxNode():
         self.manhattanDistance = self.maze.getManhattanDistance(self.row, self.column)
         self.totalCost = self.movementCost + self.manhattanDistance
 
+    # Less Than comparison to an(other) node
     def __lt__(self, other):
         if self.totalCost == other.totalCost:
             return self.num < other.num
         return self.totalCost < other.totalCost
     
+    # Equals comparison to an(other) node or an int
     def __eq__(self, other):
         if isinstance(other, int): 
             if other == self.num:
@@ -243,7 +247,7 @@ def notAlreadyExplored(explored, heap, box):
             return False
     return True
         
-# Checks a given box's 4 surrounding boxes and adds them to the heap if applicable
+# Checks a given box's 4 surrounding boxes and adds them to the frontier heap if applicable
 def resolveBox(maze, heap, explored, box):
     result = "Not Found"
     # Check West first
@@ -310,6 +314,8 @@ def backtrackForSolution(explored):
     #            notVerified = True
     return solution
 
+
+############################ PROGRAM TO CREATE MAZE AND STRUCTURES, AND SOLVE IT ############################
 
 m = Maze()
 heapFrontier = []
